@@ -13,10 +13,6 @@ import (
 	"time"
 )
 
-// func main(){
-// 	fmtPrintingVerb()
-// }
-
 //1.1 转义符
 func EscapeCharacters() {
 	fmt.Print(
@@ -49,46 +45,6 @@ func VariableAndConstant() {
 		g, h = iota, iota //并行所以一起等于6
 	)
 	fmt.Println(a, b, c, d, f, g, h)
-}
-
-//1.3 随机数生成
-func RandomNumber() {
-	fmt.Println("1.3 随机数生成")
-	var randseed = time.Now().UnixNano()
-	for i := 1; i < 10; i++ {
-		randseed++
-		rand.Seed(randseed)
-		randNum := rand.Int31n(100)
-		fmt.Println(randNum)
-	}
-}
-
-//1.4 匿名函数
-func AnonymousFunction() {
-	fmt.Println("1.4 匿名函数")
-	fang := func(n1 int, n2 int) int {
-		return n1 + n2
-	}(1, 2)
-	xj := fang
-	fmt.Println(xj)
-	fmt.Println(fang) //两者输出结果一样的
-
-	//闭包
-	fmt.Println("闭包：一个函数与其相关的引用环境组合的一个整体（实体）")
-	fang2 := func() func() int {
-		n3 := 1
-		fmt.Println("hello")
-		return func() int {
-			n3++
-			return n3
-		}
-	}
-	xj2 := fang2()
-	//fmt.Println(fang2)
-	//fmt.Println(xj2)
-	fmt.Printf("%T", xj2)
-	fmt.Println(xj2())
-
 }
 
 //2 格式化输出 fmt.Printing Verb
@@ -143,9 +99,80 @@ func FmtPrintingVerb() {
 	fmt.Printf("%%p=pointer 指针 开头是0x ,%p\n", p)
 }
 
-//3.1 基本数据类型和string的转换
+//3 流程控制
+//3.2 随机数生成
+func RandomNumber() {
+	fmt.Println("1.3 随机数生成")
+	var randseed = time.Now().UnixNano()
+	for i := 1; i < 10; i++ {
+		randseed++
+		rand.Seed(randseed)
+		randNum := rand.Int31n(100)
+		fmt.Println(randNum)
+	}
+}
+
+//3.3 label, 配合goto跳转，break，和continue
+func LabelTest() {
+	fmt.Println("1")
+	fmt.Println("2")
+	var n = 0
+	if n == 0 {
+		goto labelName1
+	}
+	fmt.Println("3")
+	fmt.Println("4")
+labelName1:
+	fmt.Println("5")
+	fmt.Println("6")
+labelName2:
+	for i := 7; ; {
+	labelName3:
+		for ; i < 120; i++ {
+
+			if i == 10 {
+				continue labelName3
+			}
+			fmt.Println(i)
+			if i == 20 {
+				break labelName2
+			}
+		}
+	}
+}
+
+//4 匿名函数
+func AnonymousFunction() {
+	fmt.Println("4 匿名函数")
+	fang := func(n1 int, n2 int) int {
+		return n1 + n2
+	}(1, 2)
+	xj := fang
+	fmt.Println(xj)
+	fmt.Println(fang) //两者输出结果一样的
+
+	//闭包
+	fmt.Println("闭包：一个函数与其相关的引用环境组合的一个整体（实体）")
+	fang2 := func() func() int {
+		n3 := 1
+		fmt.Println("hello")
+		return func() int {
+			n3++
+			return n3
+		}
+	}
+	xj2 := fang2()
+	//fmt.Println(fang2)
+	//fmt.Println(xj2)
+	fmt.Printf("%T", xj2)
+	fmt.Println(xj2())
+
+}
+
+//5 基本数据类型
+//5.1 基本数据类型和string的转换
 func BasicDataTypeAndStringConversion() {
-	//3.1.1 基本数据类型转成string
+	//5.1.1 基本数据类型转成string
 	//方法一：fmt.Sprintf("%参数",表达方式) Sprintf根据format参数生成格式化的字符串并返回该字符串
 	//func SPrintf(format string, a...interface{}) string
 	fmt.Println(`方法一：fmt.Sprintf("%参数",表达方式)`)
@@ -184,7 +211,7 @@ func BasicDataTypeAndStringConversion() {
 	str = strconv.FormatUint(uint64(num3), 10)
 	fmt.Printf("str=strconv.FormatUint(uint64(num3),10)输出的效果：%s\n", str)
 
-	//3.1.2 string转成基本数据类型
+	//5.1.2 string转成基本数据类型
 	//方法一：使用strconv包的函数
 	//func ParseBool(str string)(value bool,err error)
 	str = "true"
@@ -205,7 +232,7 @@ func BasicDataTypeAndStringConversion() {
 	fmt.Println("str=\"21324324\";uint1,_:=strconv.ParseUint(str,2,2);输出：\n", uint1)
 }
 
-//3.2 指针pointer
+//5.2 指针pointer
 func Pointer() {
 	fmt.Println("4 pointer")
 	//基本数据类型，变量存的就是值，也叫值类型
@@ -224,7 +251,7 @@ func Pointer() {
 	fmt.Println("i=", i)
 }
 
-//3.3 值类型和引用类型
+//5.3 值类型和引用类型
 
 //值类型：基本数据类型int系列，float系列，bool，string、数组和结构体
 //变量直接存储值，内存通常在栈中分配
@@ -235,9 +262,10 @@ func Pointer() {
 //变量存储是一个地址，这个地址对应的空间才是真正存储数据（值），内存通常在堆区上分配，当没有任何变量引用这个地址时，
 //改地址对应的数据空间就成为了一个垃圾，由GC来回收
 
-//3.5 字符串的常用函数
+//6 系统内建的常用函数
+//6.1 字符串的常用函数
 func FunctionsInStrings() {
-	fmt.Println("3.5.1 统计字符串的长度，按字节 len(str) : func len(v Type) int ")
+	fmt.Println("6.1.1 统计字符串的长度，按字节 len(str) : func len(v Type) int ")
 	//数组：v中元素的数量  数组指针：*v中元素的数量（v为nil时panic）
 	//切片、映射：v中元素的数量；若v为nil，len（v）即为零
 	//字符串：v中字节的数量    通道：通道缓存中队列（未读取）元素的数量；若v为nil，len（v）即为零
@@ -248,7 +276,7 @@ func FunctionsInStrings() {
 	//fmt.Println("var a int =123456 ; a1:=len(a) ; 输出：",a1)
 	fmt.Println("var b string =\"hello\" ; b1:=len(b) ; 输出：", b1)
 
-	fmt.Println("3.5.2 字符串遍历，同时处理有中文的问题 r：=[]rune(str)")
+	fmt.Println("6.1.2 字符串遍历，同时处理有中文的问题 r：=[]rune(str)")
 	str2 := "hello你"
 	for i := 0; i < len(str2); i++ {
 		fmt.Println("字符=", str2[i])
@@ -259,7 +287,7 @@ func FunctionsInStrings() {
 	} //打印出字符
 	fmt.Println(str3)
 
-	fmt.Println("3.5.3 字符串转整数：func Atoi(s string)(i int,err error)")
+	fmt.Println("6.1.3 字符串转整数：func Atoi(s string)(i int,err error)")
 	n, err := strconv.Atoi("123")
 	if err != nil {
 		fmt.Println("转换失败", err)
@@ -268,84 +296,84 @@ func FunctionsInStrings() {
 		fmt.Printf("Type:%T,value:%v\n", n, n)
 	}
 
-	fmt.Println("3.5.4 整数转字符串：str=strconv.Itoa(123)")
+	fmt.Println("6.1.4 整数转字符串：str=strconv.Itoa(123)")
 	str4 := strconv.Itoa(123)
 	fmt.Printf("Type:%T,value:%v\n", str4, str4)
 
-	fmt.Println("3.5.5 字符串转[]byte：var byte=[]byte(\"hello word\")")
+	fmt.Println("6.1.5 字符串转[]byte：var byte=[]byte(\"hello word\")")
 	var bytes = []byte("hello word")
 	fmt.Printf("Type=%T,char=%c\n", bytes, bytes)
 
-	fmt.Println("3.5.6 []byte转字符串: str=string([]byte{11,22,33})")
+	fmt.Println("6.1.6 []byte转字符串: str=string([]byte{11,22,33})")
 	str6 := string([]byte{11, 22, 33})
 	fmt.Printf("Type=%T,int=%v\n", str6, str6)
 
-	fmt.Println("3.5.7 查找字符串是否在指定的字符串中：strings.Contains(\"baby\",\"honey\")")
+	fmt.Println("6.1.7 查找字符串是否在指定的字符串中：strings.Contains(\"baby\",\"honey\")")
 	//func Contains(s,suber string)bool  如果没有指定的字符则输出false
 	c := strings.Contains("abc", "ad")
 	fmt.Println(c)
 
-	fmt.Println("3.5.8 统计一个字符里有几个指定的字符串：strings.Count(\"abcc\",\"c\")") //区分大小写的
+	fmt.Println("6.1.8 统计一个字符里有几个指定的字符串：strings.Count(\"abcc\",\"c\")") //区分大小写的
 	d := strings.Count("abssBss", "b")
 	fmt.Println(d)
 
-	fmt.Println("3.5.9 区分和不区分大小写的字符串比较")
+	fmt.Println("6.1.9 区分和不区分大小写的字符串比较")
 	fmt.Println(strings.EqualFold("abc", "ABC")) //不区分大小写
 	fmt.Println("abc" == "ABC")                  //区分大小写
 
-	fmt.Println("3.5.10 返回子串在字符第一次出现的index值，如果没有返回-1  strings.Index(\"NMnhh abc\",\"abc\")")
+	fmt.Println("6.1.10 返回子串在字符第一次出现的index值，如果没有返回-1  strings.Index(\"NMnhh abc\",\"abc\")")
 	//strings.Index("NMnhh abc","abc")
 	fmt.Println(strings.Index("NMnhh_abc", "abc")) //6
 
-	fmt.Println("3.5.11 返回子串在字符最后一次出现的index值，如果没有返回-1   strings.LastIndex(\"NMnhh abc\",\"abc\")")
+	fmt.Println("6.1.11 返回子串在字符最后一次出现的index值，如果没有返回-1   strings.LastIndex(\"NMnhh abc\",\"abc\")")
 	fmt.Println(strings.LastIndex("NMnhh_abcabcabcabcabc", "abc")) //18
 
-	fmt.Println("3.5.12 将指定的子串替换成另一个子串：strings.Replace(\"go go hello\",\"go\",\"go语言\",n)")
+	fmt.Println("6.1.12 将指定的子串替换成另一个子串：strings.Replace(\"go go hello\",\"go\",\"go语言\",n)")
 	// fmt.Println(strings.Replace("go go hello","go","go语言",n))   n 可以指定你希望替换几个 n=-1是全部替换
 	fmt.Println(strings.Replace("go go hello", "go", "go语言", -1))
 
-	fmt.Println("3.5.13 按照指定的某个字符为分割标识，将字符串拆分成字符串数组  strings.Split(\"hello word,ok\",\",\")")
+	fmt.Println("6.1.13 按照指定的某个字符为分割标识，将字符串拆分成字符串数组  strings.Split(\"hello word,ok\",\",\")")
 	zf := strings.Split("hello word,ok", ",")
 	for i := 0; i < len(zf); i++ {
 		fmt.Println(zf[i])
 	}
 	fmt.Println(strings.Split("hello word,ok", ","))
 
-	fmt.Println("3.5.14 将字符串的字母进行大小写的转换  strings.ToLower(\"Go\")")
+	fmt.Println("6.1.14 将字符串的字母进行大小写的转换  strings.ToLower(\"Go\")")
 	//strings.ToLower("Go")//go
 	//strings.ToUpper("Go")//GO
 	fmt.Println(strings.ToLower("Go"))
 	fmt.Println(strings.ToUpper("Go"))
 
-	fmt.Println("3.5.15 将字符串左右两边的空格去掉：")
+	fmt.Println("6.1.15 将字符串左右两边的空格去掉：")
 	q := strings.TrimSpace("  aa ss   aa aa   a a a  ")
 	fmt.Println(q)
 
-	fmt.Println("3.5.16 将字符串左右两边指定的字符去掉：")
+	fmt.Println("6.1.16 将字符串左右两边指定的字符去掉：")
 	w := strings.Trim("!aa ss!!aa aa!   a !!a a !!", "!")
 	fmt.Println(w)
 
-	fmt.Println("3.5.17 将字符串左边指定的字符去掉：")
+	fmt.Println("6.1.17 将字符串左边指定的字符去掉：")
 	e := strings.TrimLeft("!aa ss!!aa aa!   a !!a a !! ", "!")
 	fmt.Println(e)
 
-	fmt.Println("3.5.18 将字符串右边指定的字符去掉：")
+	fmt.Println("6.1.18 将字符串右边指定的字符去掉：")
 	r := strings.TrimRight("!aa ss!!aa aa!   a !!a a !!", "!")
 	fmt.Println(r)
 
-	fmt.Println("3.5.19 判断字符串是否以指定的字符串开头")
+	fmt.Println("6.1.19 判断字符串是否以指定的字符串开头")
 	t := strings.HasPrefix("abc,wwes22", "abc")
 	fmt.Println(t)
 
-	fmt.Println("3.5.20 判断字符串是否以指定的字符串结束")
+	fmt.Println("6.1.20 判断字符串是否以指定的字符串结束")
 	y := strings.HasSuffix("sdwdewdxwccmm", "m")
 	fmt.Println(y)
 }
 
-//3.6 时间和日期函数
+//6.2 时间和日期函数
 func TimeAndData() {
-	fmt.Println("3.6 时间和日期函数")
-	//3.6.1完整版
+	fmt.Println("6.2 时间和日期函数")
+	//6.2.1完整版
 	fmt.Println("当前年：", time.Now().Year())
 	fmt.Println("当前月：", time.Now().Month())
 	fmt.Println("当前月：", int(time.Now().Month())) //可将返回的mouth转成对应的数值
@@ -366,7 +394,7 @@ func TimeAndData() {
 	fmt.Println(time.Now().Format("15:04:05\n"))
 	fmt.Println(time.Now().Format("01\n")) //只显示月份
 
-	//3.6.2时间的常量
+	//6.2.2时间的常量
 	// const(
 	// 	Nanosecond Duration=1//纳秒        //Duration是int64的别名
 	// 	Microsecond =1000*Nanosecond//微秒
@@ -376,7 +404,7 @@ func TimeAndData() {
 	// 	Hour=60*Minute//小时
 	// )
 
-	//3.6.3 休眠
+	//6.2.3 休眠
 	//func Sleep(d Duration)
 	//time.Seelp(100*time.Millisecond)//休眠100毫秒
 	//案例：
@@ -385,20 +413,20 @@ func TimeAndData() {
 		time.Sleep(5 * time.Second)
 	}
 
-	//3.6.4 获取当前unix时间戳和unixnano时间戳   //1970-01-01 00:00
+	//6.2.4 获取当前unix时间戳和unixnano时间戳   //UTC 1970-01-01 00:00(开始时间)
 
 }
 
-//3.7 new(Type)
+//6.3 new(Type)
 func FunctionNew() {
-	fmt.Println("3.7 new(Type)")
+	fmt.Println("6.3 new(Type)")
 	a := new(int) //传出地址跟var a *int差不多
 	fmt.Printf("Type=%T,valeu=%v", a, a)
 }
 
-//3.8 错误捕捉延迟处理  //出错后，会输出错误但是整个程序继续执行
+//6.4 错误捕捉延迟处理  //出错后，会输出错误但是整个程序继续执行
 func SearchDaly() {
-	fmt.Println("3.8 错误捕捉延迟处理  //出错后，会输出错误但是整个程序继续执行")
+	fmt.Println("6.4 错误捕捉延迟处理  //出错后，会输出错误但是整个程序继续执行")
 	defer func() {
 		err := recover()
 		if err != nil {
@@ -413,9 +441,9 @@ func SearchDaly() {
 	fmt.Println("函数再继续执行")
 }
 
-//3.9 自定义错误
+//6.5 自定义错误
 func CustomError() {
-	fmt.Println("3.9 自定义错误")
+	fmt.Println("6.5 自定义错误")
 	err := func(str string) (err error) {
 		if str == "xujing" {
 			return nil
@@ -428,9 +456,9 @@ func CustomError() {
 	}
 }
 
-//4  数组
+//7  数组
 func Array() {
-	//4.1 申明数组
+	//7.1 申明数组
 	//第一种：
 	var arr [2]int
 	arr[0] = 0
@@ -446,31 +474,31 @@ func Array() {
 	var arr4 = [...]int{1, 2, 3, 4}
 	fmt.Println(arr4) //2:6中，2是下标，意思是第二个数字是6
 
-	//4.2 For...range遍历数组
+	//7.2 For...range遍历数组
 	for index, value := range arr {
 		fmt.Println("第", index, "个数组的值是：", value)
 	}
 
-	//4.3 声明切片
-	//4.3.1 引用数组
+	//7.3 声明切片
+	//7.3.1 引用数组
 	slice1 := make([]int, 10)
 	s := slice1
 	slice1[0] = 666
 	fmt.Println(s[0])
-	//4.3.2 make([]type,len,cap(optional))    len是定义该切片的长度 cap是容量必须>=len
+	//7.3.2 make([]type,len,cap(optional))    len是定义该切片的长度 cap是容量必须>=len
 	var slice2 = make([]int, 3) //or slice2:=make([]int,3)
 	slice2[0] = 99
 	fmt.Println(slice2[0])
 
-	//4.4 append的用法
-	//4.4.1 用法一：
+	//7.7 append的用法
+	//7.4.1 用法一：
 	slice1 = append(slice1, slice2...)
 	fmt.Println(slice1)
-	//4.4.2 用法二：
+	//7.4.2 用法二：
 	slice2 = append(slice2, 3)
 	fmt.Println(slice2)
 
-	//4.5 copy()各种情况
+	//7.5 copy()各种情况
 	copy(slice1, []int{11, 12, 13, 14})
 	fmt.Println(slice1)
 	var a = []int{1, 2}
@@ -478,9 +506,9 @@ func Array() {
 	fmt.Println(a)
 }
 
-//5 map,key是无序的，map是引用类型
+//8 map,key是无序的，map是引用类型
 func MapAndKey() {
-	//5.1 声明map，make（），和直接声明，赋值
+	//8.1 声明map，make（），和直接声明，赋值
 	var map1 = make(map[int]string)
 	var map2 = make(map[int]map[int]string)
 	map3 := map[int]string{
@@ -497,7 +525,7 @@ func MapAndKey() {
 	fmt.Println(map2)
 	fmt.Println(map3)
 
-	//5.2 删除元素 delete()
+	//8.2 删除元素 delete()
 	delete(map1, 2)
 	fmt.Println(map1)
 
@@ -518,7 +546,7 @@ func MapAndKey() {
 	}
 }
 
-//6 创建结构体实例
+//9 创建结构体实例
 type student struct {
 	Name string
 	Age  int
@@ -547,8 +575,8 @@ func StructureInstance() {
 	fmt.Println(*stu5, stu6) //加个*输出去掉地址符
 }
 
-//7 工厂模式编程
-//7.1 工厂模式结构体
+//10 工厂模式编程
+//10.1 工厂模式结构体
 func NewStudent(n string, a int) *student {
 	return &student{
 		Name: n,
@@ -584,7 +612,7 @@ func (t *teacher) GetAge() int {
 // 	fmt.Println("name=",tea.Name,"Age=",tea.GetAge())
 // }
 
-//8 继承
+//11 继承
 type Pupil struct {
 	student
 	Name string
@@ -609,7 +637,7 @@ func Extend() {
 	fmt.Println(*student2.student)
 }
 
-//9 接口 interface
+//12 接口 interface
 type Usb interface {
 	//声明两个方法
 	Start()
@@ -652,7 +680,7 @@ func InterfaceTest() {
 	//芳芳是傻子
 }
 
-//10 类型断言
+//13 类型断言
 func TypeAssertion() {
 	var fang interface{}
 	var n1 int = 123
@@ -668,10 +696,10 @@ func TypeAssertion() {
 	}
 }
 
-//11 文件操作
+//14 文件操作
 func FileOperation() {
 	filePath := "E:/develop/gonote/file.txt"
-	// 11.1 打开与关闭
+	// 14.1 打开与关闭
 	file1, err := os.Open(filePath)
 	if err != nil {
 		fmt.Println("打开file.txt文件出错！", err)
@@ -684,8 +712,8 @@ func FileOperation() {
 		}
 	}()
 
-	//11.2 带缓冲区的读取写文件（大文件）
-	//11.2.1 带缓冲区的读取，适合大文件的读取，需要手动打开与关闭
+	//14.2 带缓冲区的读取写文件（大文件）
+	//14.2.1 带缓冲区的读取，适合大文件的读取，需要手动打开与关闭
 	file2, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	//os.OpenFile(文件路径,打开模式（如果多个打开模式要用|分开）,权限代码（只对unix生效）)
 	//os.O_RDWR ：read and write
@@ -726,7 +754,7 @@ func FileOperation() {
 		fmt.Println(str)
 	}
 
-	//11.2.2 带缓冲区的写入，适合大文件，需要手动打开与关闭
+	//14.2.2 带缓冲区的写入，适合大文件，需要手动打开与关闭
 	str := "123456\n"
 	writer := bufio.NewWriter(file2)
 	for i := 0; i < 6; i++ {
@@ -743,7 +771,7 @@ func FileOperation() {
 		return
 	}
 
-	//11.3.1 一次性读取文件（小文件）
+	//14.3.1 一次性读取文件（小文件）
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		fmt.Println("一次性读取文件失败！", err)
@@ -751,7 +779,7 @@ func FileOperation() {
 	}
 	fmt.Println("一次性读取到的：", string(content))
 
-	//11.3.2 一次性写入文件（小文件）
+	//14.3.2 一次性写入文件（小文件）
 	content = []byte("pig" + "fangpig")
 	err = ioutil.WriteFile(filePath, content, 0666) //这种写入是直接覆盖整个文件
 	if err != nil {
@@ -759,7 +787,7 @@ func FileOperation() {
 		return
 	}
 
-	//11.4 判断文件是否存在
+	//14.4 判断文件是否存在
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		fmt.Println("查询文件状态出错！", err)
@@ -772,7 +800,7 @@ func FileOperation() {
 		fmt.Println("文件不存在")
 	}
 
-	//11.5 拷贝文件
+	//14.5 拷贝文件
 	file3, err := os.Open(filePath)
 	if err != nil {
 		fmt.Println("打开文件失败！", err)
