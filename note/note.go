@@ -2,14 +2,18 @@ package note
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -835,4 +839,160 @@ func FileOperation() {
 	}
 	fmt.Println("拷贝文件成功，拷贝了", written, "个字节")
 
+}
+
+//15 获取和解析命令行参数
+//15.1 获取命令行参数
+func GetCommandLineArguments() {
+	fmt.Printf("接收到命令行参数%v个\n", len(os.Args))
+	for i, v := range os.Args {
+		fmt.Printf("os.Args[%v]=%v\n", i, v)
+	}
+}
+
+//15.2 解析命令行参数
+func ParseCommandLineArgs() {
+	var user string
+	var pwd string
+	var host string //主机
+	var port int    //端口
+	flag.StringVar(&user, "u", "", "用户名，默认为空")
+	//flag.StringVar(&变量，命令行指定字段，默认值，注释)
+	flag.StringVar(&pwd, "pwd", "", "密码，默认为空")
+	flag.StringVar(&host, "h", "localhost", "主机名，默认localhost")
+	flag.IntVar(&port, "port", 8080, "端口，默认为8080")
+	flag.Parse() //解析
+	fmt.Printf("user=%s,pwd=%s,host=%s,port=%v\n", user, pwd, host, port)
+
+	// go run main.go -u sb -port 5656 -h 23.223.10.02 -pwd sdgsjahjsda
+}
+
+//16 json的序列化和反序列化
+type JsonStruct struct {
+	Name string `json:"name"`
+	Age  int    `json:"age"`
+}
+
+func JsonOperation() {
+	var jsonStruct1 JsonStruct = JsonStruct{
+		Name: "tom",
+		Age:  18,
+	}
+	// 16.1 序列化
+	data, err := json.Marshal(&jsonStruct1)
+	if err != nil {
+		fmt.Println("json序列化失败！", err)
+		return
+	}
+	fmt.Println("序列化结果为：", string(data))
+	//16.2 反序列化
+	var jsonStruct2 JsonStruct
+	err = json.Unmarshal(data, &jsonStruct2)
+	if err != nil {
+		fmt.Println("json反序列化失败！", err)
+		return
+	}
+	fmt.Println("反序列化的结果为：", jsonStruct2)
+}
+
+//17 单元测试 见note_test.go(文件名必须为：原始文件名_test.go)
+//正规工作中所有代码都要进行单元测试
+func TestableFunction(i int) int {
+	return i + 1
+}
+
+//18 协程 goroutine
+var (
+	goroutineComputRes  []int
+	goroutineComputLock sync.Mutex //同步.互斥  可以但不推荐（效率低）
+)
+
+func GoroutineFactorialComputer(n int) { //协程积乘计算器
+	res := 1
+	for i := 1; i <= n; i++ {
+		res *= i
+	}
+	goroutineComputLock.Lock()    //锁定
+	goroutineComputRes[n-1] = res //存储
+	goroutineComputLock.Unlock()  //解锁
+
+}
+
+func RunGoroutineFactorialComputer() {
+	//18.1 获取当前计算机逻辑cpu数量
+	cpuNum := runtime.NumCPU()
+	fmt.Printf("当前计算机有%v个逻辑cpu\n", cpuNum)
+	//18.2 自定义系统可以调用的cpu数量，默认调用全部cpu
+	if cpuNum > 3 {
+		runtime.GOMAXPROCS(cpuNum - 1)
+	}
+	//18.3 goroutine积乘计算案例
+	n := 30
+	goroutineComputRes = make([]int, n)
+	for i := 1; i <= n; i++ {
+		go GoroutineFactorialComputer(i)
+	}
+	time.Sleep(time.Second * 3)
+	fmt.Println(goroutineComputRes)
+
+	//18.4 协程错误处理
+	//defer+recover  见434行
+}
+
+//19 管道 channel （数据先进先出）
+func Channel() {
+	//19.1 管道的声明和初始化
+	var intChan chan int = make(chan int, 10) //如果不指定容量，默认容量为0
+	//19.2 存取数据
+	//19.2.1 存入数据
+	intChan <- 12
+	intChan <- 100
+	intChan <- 16
+	fmt.Printf("len(intChan)=%v,cap(intChan)=%v\n", len(intChan), cap(intChan))
+	//19.2.2 取出数据
+	var num int = <-intChan
+	<-intChan //不接受，丢弃数据
+	fmt.Printf("len(intChan)=%v,cap(intChan)=%v\n", len(intChan), cap(intChan))
+	fmt.Println("num=", num)
+	//19.3 遍历管道（如果不提前关闭管道，则会报错）
+	close(intChan)
+	for v := range intChan {
+		fmt.Println("v=", v)
+	}
+	//等效于
+	for {
+		v, ok := <-intChan //如果数据取完则会返回false
+		if !ok {
+			break
+		}
+		fmt.Println("v=", v)
+	}
+	//19.4 只读只写channel, 结合函数传参使用
+	var readOnlyChan chan int
+	var writeOnlyChan chan int
+	func(r <-chan int, w chan<- int) {
+		// <-chan  : 只读
+		// chan<- : 只写
+	}(readOnlyChan, writeOnlyChan)
+	//19.5 selest无法确定何时关闭管道时用
+	var strChan1 chan string = make(chan string, 3)
+	var strChan2 chan string = make(chan string, 3)
+	strChan1 <- "fang"
+	strChan2 <- "is"
+	strChan1 <- "a"
+	strChan2 <- "pig"
+	var b bool
+	for {
+		select {
+		case v := <-strChan1:
+			fmt.Println(v, " ")
+		case v := <-strChan2:
+			fmt.Println(v, " ")
+		default:
+			b = true
+		}
+		if b {
+			break
+		}
+	}
 }
