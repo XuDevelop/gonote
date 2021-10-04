@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -995,4 +996,84 @@ func Channel() {
 			break
 		}
 	}
+}
+
+//20 反射
+//20.1 反射的常用方法
+func CommonMethodsOfReflect(i interface{}) {
+	//20.1.1 获取反射类型
+	reflectType := reflect.TypeOf(i)
+	fmt.Printf("value of reflectType=%v,Type of reflectType=%T\n", reflectType, reflectType)
+	//20.1.2 获取反射值
+	reflectValue := reflect.ValueOf(i)
+	fmt.Printf("value of reflectValue=%v,Type of reflectValue=%T\n", reflectValue, reflectValue)
+	//20.1.3 将反射的值转换回空接口
+	interfaceValue := reflectValue.Interface()
+	fmt.Printf("value of interfaceValue=%v,Type of interfaceValue=%T\n", interfaceValue, interfaceValue)
+	//20.1.4 用类型断言 把空接口转回所需类型
+	intValue := interfaceValue.(int)
+	fmt.Printf("value of intValue=%v,Type of intValue=%T\n", intValue, intValue)
+
+}
+
+//20.2 对指针的反射
+func ReflectOnPointer(i interface{}) {
+	// 获取反射值
+	reflectValue := reflect.ValueOf(i)
+	fmt.Printf("value of reflectValue=%v,Type of reflectValue=%T\n", reflectValue, reflectValue)
+	//20.2.1 修改指针指向的原值
+	reflectValue.Elem().SetString("tom")
+}
+
+//20.3 对结构体的反射
+type StructReflect struct {
+	No1 string `json:"no1"`
+	No2 int    `json:"no2"`
+	No3 bool
+	No4 float64
+}
+
+func (sr StructReflect) StructMethod1() {
+	fmt.Println("StructMethod1()被调用了")
+}
+func (sr StructReflect) StructMethod2(i int, j int) int {
+	fmt.Printf("StructMethod2()被调用了，并接收到了i=%v，j=%v\n", i, j)
+	return i + j
+}
+
+func ReflectOnStruct(i interface{}) {
+	//获取反射类型
+	reflectType := reflect.TypeOf(i)
+	fmt.Printf("value of reflectType=%v,Type of reflectType=%T\n", reflectType, reflectType)
+	//获取反射值
+	reflectValue := reflect.ValueOf(i)
+	fmt.Printf("value of reflectValue=%v,Type of reflectValue=%T\n", reflectValue, reflectValue)
+	//20.3.1 获取reflectValue对应的Kind
+	reflectKind := reflectValue.Kind()
+	fmt.Printf("value of reflectKind=%v,Type of reflectKind=%T\n", reflectKind, reflectKind)
+	if reflectKind != reflect.Struct {
+		fmt.Println("调用的ReflectOnStruct()时传入的不是结构体")
+		return
+	}
+	//20.3.2 获取结构体的字段数量
+	fieldNum := reflectValue.NumField()
+	fmt.Printf("用户传入的结构体有%v个字段\n", fieldNum)
+
+}
+
+func Reflect() {
+	CommonMethodsOfReflect(10)
+	str := "pig"
+	strPtr := &str
+	fmt.Println("反射修改前的值：", *strPtr)
+	ReflectOnPointer(strPtr)
+	fmt.Println("通过反射修改后的值：", *strPtr)
+	var sr StructReflect = StructReflect{
+		No1: "fang",
+		No2: 60,
+		No3: true,
+		No4: 2.333,
+	}
+	ReflectOnStruct(sr)
+
 }

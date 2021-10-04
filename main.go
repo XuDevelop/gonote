@@ -3,5 +3,5 @@ package main
 import "gonote/note"
 
 func main() {
-	note.Channel()
+	note.Reflect()
 }
