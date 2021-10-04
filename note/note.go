@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"os"
 	"reflect"
 	"runtime"
@@ -16,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gomodule/redigo/redis"
 )
 
 //1.1 转义符
@@ -1001,6 +1004,7 @@ func Channel() {
 //20 反射
 //20.1 反射的常用方法
 func CommonMethodsOfReflect(i interface{}) {
+	fmt.Println("\n//20.1 反射的常用方法")
 	//20.1.1 获取反射类型
 	reflectType := reflect.TypeOf(i)
 	fmt.Printf("value of reflectType=%v,Type of reflectType=%T\n", reflectType, reflectType)
@@ -1018,6 +1022,7 @@ func CommonMethodsOfReflect(i interface{}) {
 
 //20.2 对指针的反射
 func ReflectOnPointer(i interface{}) {
+	fmt.Println("\n//20.2 对指针的反射")
 	// 获取反射值
 	reflectValue := reflect.ValueOf(i)
 	fmt.Printf("value of reflectValue=%v,Type of reflectValue=%T\n", reflectValue, reflectValue)
@@ -1042,12 +1047,19 @@ func (sr StructReflect) StructMethod2(i int, j int) int {
 }
 
 func ReflectOnStruct(i interface{}) {
+	fmt.Println("\n//20.3 对结构体的反射")
 	//获取反射类型
 	reflectType := reflect.TypeOf(i)
 	fmt.Printf("value of reflectType=%v,Type of reflectType=%T\n", reflectType, reflectType)
 	//获取反射值
 	reflectValue := reflect.ValueOf(i)
 	fmt.Printf("value of reflectValue=%v,Type of reflectValue=%T\n", reflectValue, reflectValue)
+	//将反射的值转换回空接口
+	interfaceValue := reflectValue.Interface()
+	fmt.Printf("value of interfaceValue=%v,Type of interfaceValue=%T\n", interfaceValue, interfaceValue)
+	//用类型断言 把空接口转回所需类型
+	intValue := interfaceValue.(StructReflect)
+	fmt.Printf("value of intValue=%v,Type of intValue=%T\n", intValue, intValue)
 	//20.3.1 获取reflectValue对应的Kind
 	reflectKind := reflectValue.Kind()
 	fmt.Printf("value of reflectKind=%v,Type of reflectKind=%T\n", reflectKind, reflectKind)
@@ -1058,7 +1070,52 @@ func ReflectOnStruct(i interface{}) {
 	//20.3.2 获取结构体的字段数量
 	fieldNum := reflectValue.NumField()
 	fmt.Printf("用户传入的结构体有%v个字段\n", fieldNum)
+	//20.3.3 遍历结构体字段
+	for i := 0; i < fieldNum; i++ {
+		fmt.Printf("Field(%v)=\"%v:%v\",", i, reflectType.Field(i).Name, reflectValue.Field(i))
+		tagValue := reflectType.Field(i).Tag.Get("json")
+		if tagValue != "" {
+			fmt.Printf("jsonTag=\"%v\"", tagValue)
+		}
+		fmt.Println()
+	}
+	//20.3.4 统计这个结构体的方法数量
+	methodNum := reflectValue.NumMethod()
+	fmt.Printf("用户传入的结构体有%v个方法\n", methodNum)
+	//20.3.5 在反射里调用结构体方法
+	reflectValue.Method(0).Call(nil)
+	var params []reflect.Value
+	params = append(params, reflect.ValueOf(666), reflect.ValueOf(999))
+	resOfMethod := reflectValue.Method(1).Call(params)
+	for i, v := range resOfMethod {
+		fmt.Printf("value of resOfMethod[%v]=%v,Type of resOfMethod[%v]=%T\n", i, v, i, v)
+	}
+}
 
+//20.4 对结构体指针的反射
+func ReflectOnStructPtr(i interface{}) {
+	fmt.Println("\n//20.4 对结构体指针的反射")
+	//获取反射类型
+	reflectType := reflect.TypeOf(i)
+	fmt.Printf("value of reflectType=%v,Type of reflectType=%T\n", reflectType, reflectType)
+	//20.4.1 获取反射类型指向的类型（原始类型）
+	typeByReflectType := reflectType.Elem()
+	fmt.Printf("value of typeByReflectType=%v,Type of typeByReflectType=%T\n",
+		typeByReflectType, typeByReflectType)
+	//获取反射值
+	reflectValue := reflect.ValueOf(i)
+	fmt.Printf("value of reflectValue=%v,Type of reflectValue=%T\n", reflectValue, reflectValue)
+	//20.4.2 创建一个新的typePointedToByReflectType的指针
+	newReflectValue := reflect.New(typeByReflectType)
+	fmt.Printf("value of newReflectValue=%v,Type of newReflectValue=%T\n", newReflectValue, newReflectValue)
+	//20.4.3 获取newReflectValue指向的原始值
+	valueByNewReflectValue := newReflectValue.Elem()
+	valueByNewReflectValue.FieldByName("No1").SetString("somebody") //根据字段赋值
+	valueByNewReflectValue.FieldByName("No2").SetInt(10)
+	fmt.Printf("value of valueByNewReflectValue=%v,Type of valueByNewReflectValue=%T\n", valueByNewReflectValue, valueByNewReflectValue)
+	//20.4.4 将newReflectValue还原为原始结构体
+	newSr := newReflectValue.Interface().(*StructReflect)
+	fmt.Printf("value of newSr=%v,Type of newSre=%T\n", newSr, newSr)
 }
 
 func Reflect() {
@@ -1075,5 +1132,220 @@ func Reflect() {
 		No4: 2.333,
 	}
 	ReflectOnStruct(sr)
+	srPtr := &sr
+	ReflectOnStructPtr(srPtr)
+}
 
+//21 TCP编程 (Transmission Control Protocol 传输控制协议)
+func TCPServerProcess(conn net.Conn) {
+	//21.1.4 关闭连接
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("关闭链接失败！", err)
+		}
+	}()
+	for {
+		fmt.Println("等待客户端发送消息...")
+		//21.1.5 读取客户端信息
+		buf := make([]byte, 4096)
+		n, err := conn.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("客户端已退出！")
+			} else {
+				fmt.Println("读取客户端消息失败！", err)
+			}
+			return
+		}
+		fmt.Println("读取到客户端的消息：", string(buf[0:n]))
+	}
+}
+
+//21.1 TCP服务器
+func TCPServer() {
+	//21.1.1 监听端口
+	listener, err := net.Listen("tcp", "0.0.0.0:21104")
+	if err != nil {
+		fmt.Println("监听失败！", err)
+		return
+	}
+	//21.1.2 关闭监听端口
+	defer func() {
+		err := listener.Close()
+		if err != nil {
+			fmt.Println("关闭监听失败！", err)
+		}
+	}()
+	fmt.Println("监听成功！", listener)
+	for {
+		fmt.Println("等待客户端连接...")
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("客户端连接失败！", err)
+			continue
+		}
+		fmt.Println("客户端连接成功！", conn)
+		fmt.Println("客户端来自：", conn.RemoteAddr().String())
+		//21.1.3 启动协程处理
+		go TCPServerProcess(conn)
+	}
+
+}
+
+//21.2 TCP客户端
+func TCPClient() {
+	//21.2.1 拨号连接
+	conn, err := net.Dial("tcp", "localhost.betadevelop.com:21104")
+	if err != nil {
+		fmt.Println("拨号连接失败！", err)
+		return
+	}
+	//21.2.2 关闭连接
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("关闭连接失败！", err)
+		}
+	}()
+	fmt.Println("拨号连接成功！", conn)
+	for {
+		fmt.Println("请输入要发送的信息：")
+		readerPtr := bufio.NewReader(os.Stdin)
+		str, err := readerPtr.ReadString('\n')
+		if err != nil {
+			fmt.Println("读取失败！", err)
+			continue
+		}
+		str = strings.Trim(str, "\r\n")
+		if str == "exit" {
+			return
+		}
+		//21.2.3 发送数据
+		n, err := conn.Write([]byte(str))
+		if err != nil {
+			fmt.Println("发送失败！", err)
+			return
+		}
+		fmt.Println("发送成功，发送了", n, "个字节")
+	}
+}
+
+//22 redis数据库
+//redis支持的数据类型: String/Hash(类似于golang的map[string]string)/List/Set(无序且不能重复)/zset是有序的(无序：set)
+
+//22.1 常见key value操作
+//22.1.1 添加和修改key value：set key value
+//22.1.2 添加临时的key value：setex key seconds value
+//22.1.3 批量添加修改key value：mset key1 value1 key2 value2 ...
+//22.1.4 查看所有的key：keys *
+//22.1.5 查看key对应的值：get key
+//22.1.6 批量获取key的值：mget key1 key2 ...
+//22.1.7 切换数据库（0~15 默认为0）：select index
+//22.1.8 查看当前数据库key value数量：dbsize
+//22.1.9 清空当前数据库所有key value：flushdb
+//22.1.10 清空所有数据库所有key value：flushall
+//22.1.11 删除指定的key value：del key
+
+//22.2 hash 操作
+//22.2.1 添加修改hash：hset key field value
+//22.2.2 批量添加修改hash：hmset key field1 value1 field2 value2 ...
+//22.2.3 查看key field对应的值：hget key field
+//22.2.4 批量查看key的多个field的值：hmget key field1 field2 ...
+//22.2.5 获取key对应的所有的field value: hgetall key
+//22.2.6 删除对应的field和value：hdel key field1 field2 ...
+//22.2.7 查看hash长度：hlen key
+//22.2.8 查看字段是否存在：hexists key field
+
+//22.3 list
+//22.3.1 从左边插入元素：lpush key value2 value1 value0 ...
+//22.3.2 从右边插入元素：rpush key value0 value1 value2 ...
+//22.3.3 获取对应的元素：lrange key startIndex stopIndex (index可以为负数：-1为倒数第一个元素，-2为倒数第二个元素...)
+//22.3.4 从左边推出元素（如果全部推出，则对应的key也会被删除）：lpop key
+//22.3.5 从右边推出元素：rpop key
+//22.3.6 统计list长度：llen key
+
+//22.4 set
+//22.4.1 添加元素：sadd key member1 member2 member0 ...
+//22.4.2 获取所有的元素：smembers key
+//22.4.3 判断元素是否存在：sismember key member
+//22.4.4 删除元素：srem key member member ...
+
+//22.5 通过redigo 操作redis
+func RediGo() {
+	//22.5.1 拨号连接
+	conn, err := redis.Dial("tcp", "127.0.0.1:6379")
+	if err != nil {
+		fmt.Println("redis连接失败！", err)
+		return
+	}
+	//22.5.2 关闭连接
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("关闭与redis的连接失败！", err)
+		}
+	}()
+	fmt.Println("redis连接成功！", conn)
+
+	//22.5.3 操作redis
+	conn.Do("set", "name", "fangpig")
+	str, err := redis.String(conn.Do("get", "name"))
+	if err != nil {
+		fmt.Println("操作redis失败！", err)
+		return
+	}
+	fmt.Println("redis返回：", str)
+	conn.Do("hmset", "user1", "name", "fangpig", "age", "60")
+	strs, err := redis.Strings(conn.Do("hgetall", "user1"))
+	if err != nil {
+		fmt.Println("操作redis失败！", err)
+		return
+	}
+	for i, v := range strs {
+		if i%2 == 0 {
+			fmt.Printf("user1[\"%v\"]:", v)
+		} else {
+			fmt.Printf("\"%v\"\n", v)
+		}
+	}
+
+}
+
+//22.5.4 redis连接池（服务器端并发性能优化）
+var redisPool *redis.Pool
+
+func RedisPoolInit() { //需要在项目的init(初始化的意思）中调用
+	redisPool = &redis.Pool{
+		MaxIdle:     8,  //最大空闲连接数
+		MaxActive:   0,  //最大连接数，0是没有限制
+		IdleTimeout: 30, //最大空闲时间（秒）
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", "127.0.0.1:6379")
+		},
+	}
+}
+func RedisPoolTest() { //通常在协程中使用
+	//从redis中取出连接
+	conn := redisPool.Get()
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("关闭与redis的连接失败！", err)
+		}
+	}()
+	fmt.Println("redis连接成功！", conn)
+	conn.Do("hmset", "user1", "name", "fangpig", "age", "60")
+	strs, err := redis.Strings(conn.Do("hgetall", "user1"))
+	if err != nil {
+		fmt.Println("操作redis失败！", err)
+		return
+	}
+	for i, v := range strs {
+		if i%2 == 0 {
+			fmt.Printf("user1[\"%v\"]:", v)
+		} else {
+			fmt.Printf("\"%v\"\n", v)
+		}
+	}
 }

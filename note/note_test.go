@@ -10,7 +10,6 @@ func TestTestableFunction(log *testing.T) {
 	} else {
 		log.Logf("正常执行")
 	}
-
 }
 
 //调用方法

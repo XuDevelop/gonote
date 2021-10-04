@@ -1,7 +1,12 @@
 package main
 
-import "gonote/note"
+import (
+	"fmt"
+)
 
+func init() {
+	fmt.Println("init被调用了")
+}
 func main() {
-	note.Reflect()
+	fmt.Println("main被调用了")
 }
