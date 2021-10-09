@@ -21,6 +21,8 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+//文件管理初始化（在项目的根目录下）：go mod init 项目名
+
 //1.1 转义符
 func EscapeCharacters() {
 	fmt.Print(
