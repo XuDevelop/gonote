@@ -1351,3 +1351,843 @@ func RedisPoolTest() { //通常在协程中使用
 		}
 	}
 }
+
+//23 棋盘
+type ArrayStr struct {
+	R int //row 行
+	C int //col 列
+	V int
+}
+type PutArrayStr struct {
+	SparseArray []ArrayStr
+	Len         int
+}
+
+func ChessBoard() {
+	//1.先创建一个原始数组
+	var array [13][10]int
+	array[1][2] = 1
+	array[2][3] = 2
+	//2.输出看看原始的数组
+	fmt.Println("原始数组：")
+	for _, v := range array {
+		for _, v2 := range v {
+			fmt.Print("\t", v2)
+		}
+		fmt.Println()
+	}
+	//3.转成稀疏数组
+	var sparseArray []ArrayStr
+	//标准的一个稀疏数组应该还有一个 记录元素的二维数组的规模（行和列，默认值）
+	arrayStr := ArrayStr{
+		R: len(array),
+		C: len(array[0]),
+		V: 0,
+	}
+	sparseArray = append(sparseArray, arrayStr)
+	for i, v := range array {
+		for i2, v2 := range v {
+			if v2 != 0 {
+				//创建一个ValNode值结点
+				arrayStr := ArrayStr{
+					R: i,
+					C: i2,
+					V: v2,
+				}
+				sparseArray = append(sparseArray, arrayStr)
+			}
+		}
+	}
+	//输出稀疏数组
+	fmt.Println("稀疏数组：") //sparseArray 稀疏数组
+	for i := range sparseArray {
+		fmt.Printf("sparseArray[%d]=r:%d\tc=%d\tv=%d\n", i, sparseArray[i].R, sparseArray[i].C, sparseArray[i].V)
+	}
+
+	//把稀疏数组存入硬盘
+	//从硬盘读取并还原
+	putArrayStr := PutArrayStr{
+		SparseArray: sparseArray,
+		Len:         len(sparseArray),
+	}
+	content, _ := json.Marshal(putArrayStr)
+	err := ioutil.WriteFile("E:/develop/gonote/note/note.no", content, 0666) //这种写入是直接覆盖整个文件
+	if err != nil {
+		fmt.Println("一次性写入文件失败！", err)
+		return
+	}
+	content, err = ioutil.ReadFile("E:/develop/gonote/note/note.no")
+	if err != nil {
+		fmt.Println("一次性读取文件失败！", err)
+		return
+	}
+	fmt.Println("一次性读取到的：", string(content))
+	putArrayStr2 := PutArrayStr{}
+	json.Unmarshal(content, &putArrayStr2)
+
+	var RArray [][]int = make([][]int, putArrayStr2.SparseArray[0].R)
+	for i := range RArray {
+		RArray[i] = make([]int, putArrayStr2.SparseArray[0].C)
+	}
+	for i, v := range putArrayStr2.SparseArray {
+		if i == 0 {
+			continue
+		}
+		RArray[v.R][v.C] = v.V
+	}
+
+	fmt.Println("还原以后的二维切片:")
+	for _, v := range RArray {
+		for _, v2 := range v {
+			fmt.Printf("%v\t", v2)
+		}
+		fmt.Println()
+	}
+
+}
+
+//24 数组虚拟队列
+type QueueStr struct {
+	MaxSize int
+	Array   [5]int //数组=》模拟队列
+	Front   int    //表示指向队列首
+	Rear    int    //表示指向队列尾
+}
+
+//添加数据到队列
+func (q *QueueStr) AddQueue(num int) (err error) {
+	//先判断队列是否已满
+	if q.Rear == q.MaxSize-1 {
+		//Rear是队列尾部（含最后的元素）
+		return errors.New("Queue full")
+	}
+	q.Rear++ //Rear后移
+	q.Array[q.Rear] = num
+	return
+}
+
+func (q *QueueStr) GetQueue() (num int, err error) {
+	//先判断队列是否为空
+	if q.Rear == q.Front {
+		//队列为空
+		return -1, errors.New("Queue Empyt")
+	}
+	q.Front++
+	num = q.Array[q.Front]
+	return num, err
+}
+
+//显示队列，找到队首，然后遍历到队尾
+func (q *QueueStr) ShowQueue() {
+	fmt.Println("队列当前的情况是：")
+	//q.Front不包含队首的元素
+	for i := q.Front + 1; i <= q.Rear; i++ {
+		fmt.Printf("Array[%d]=%d\t", i, q.Array[i])
+	}
+	fmt.Println()
+}
+func Queue() {
+	//创建一个队列
+	queue := &QueueStr{
+		MaxSize: 5,
+		Front:   -1,
+		Rear:    -1,
+	}
+	var key int
+	var num int
+	for {
+		fmt.Println("1-加入数据到队列")
+		fmt.Println("2-从队列取出数据")
+		fmt.Println("3-显示队列")
+		fmt.Println("4-退出")
+		fmt.Println("输入（1~3）：")
+		fmt.Scanln(&key)
+		switch key {
+		case 1:
+			fmt.Println("请输入要添加的一个数据：")
+			fmt.Scanln(&num)
+			err := queue.AddQueue(num)
+			if err != nil {
+				fmt.Println("添加失败！ err=", err.Error())
+			} else {
+				fmt.Println("添加成功！")
+			}
+		case 2:
+			num, err := queue.GetQueue()
+			if err != nil {
+				fmt.Println("取出失败！ err=", err.Error())
+			} else {
+				fmt.Println("取出成功，num=", num)
+			}
+		case 3:
+			queue.ShowQueue()
+		case 4:
+			os.Exit(0)
+		default:
+			return
+		}
+	}
+}
+
+//25 闭环队列
+type CircleQueue struct {
+	MaxSize int //4
+	Arrary  [4]int
+	Head    int
+	Tail    int
+}
+
+//放入
+func (c *CircleQueue) Push(val int) (err error) {
+	if c.IsFull() {
+		return errors.New("queue full")
+	}
+	c.Arrary[c.Tail] = val
+	c.Tail = (c.Tail + 1) % (c.MaxSize + 1)
+	return nil
+}
+
+//取出
+func (c *CircleQueue) Pop() (val int, err error) {
+	if c.IsEmpty() {
+		return -1, errors.New("queue empty")
+	}
+	val = c.Arrary[c.Head]
+	c.Head = (c.Head + 1) % (c.MaxSize + 1)
+	return
+}
+
+//显示
+func (c *CircleQueue) Show() {
+	size := c.Size()
+	if size == 0 {
+		fmt.Println("队列为空")
+		return
+	}
+	t := c.Head
+	for i := 0; i < size; i++ {
+		fmt.Printf("Arrary[%d]=%d\n", t, c.Arrary[t])
+		t = (t + 1) % c.MaxSize
+	}
+}
+
+//判断环形队列是否为满
+func (c *CircleQueue) IsFull() bool {
+	return (c.Tail+1)%c.MaxSize == c.Head
+}
+
+//判断环形队列是否为空
+func (c *CircleQueue) IsEmpty() bool {
+	return c.Tail == c.Head
+}
+
+//判断环形队列有多少个元素
+func (c *CircleQueue) Size() int {
+	return (c.Tail + c.MaxSize - c.Head) % c.MaxSize
+}
+
+func CircleQueueTest() {
+	queue := &CircleQueue{
+		MaxSize: 5,
+	}
+	var key int
+	var num int
+	for {
+		fmt.Println("1-加入数据到队列")
+		fmt.Println("2-从队列取出数据")
+		fmt.Println("3-显示队列")
+		fmt.Println("4-退出")
+		fmt.Println("输入（1~4）：")
+		fmt.Scanln(&key)
+		switch key {
+		case 1:
+			fmt.Println("请输入要添加的一个数据：")
+			fmt.Scanln(&num)
+			err := queue.Push(num)
+			if err != nil {
+				fmt.Println("添加失败！ err=", err.Error())
+			} else {
+				fmt.Println("添加成功！")
+			}
+		case 2:
+			num, err := queue.Pop()
+			if err != nil {
+				fmt.Println("取出失败！ err=", err.Error())
+			} else {
+				fmt.Println("取出成功，num=", num)
+			}
+		case 3:
+			queue.Show()
+		case 4:
+			os.Exit(0)
+		default:
+			return
+		}
+	}
+}
+
+//26 链表
+//26.1.1 单链表
+type UnidirectionalChainNode struct {
+	No   int
+	Name string
+	Next *UnidirectionalChainNode //表示指向下一个结点
+}
+
+func (head *UnidirectionalChainNode) Append(newScn *UnidirectionalChainNode) {
+	t := head
+	for {
+		if t.Next == nil {
+			break
+		}
+		t = t.Next
+	}
+	t.Next = newScn
+}
+
+//显示链表的所有结点信息
+func (head *UnidirectionalChainNode) Print() {
+	t := head
+	if t.Next == nil {
+		fmt.Println("该链表为空")
+		return
+	}
+	for {
+		fmt.Printf("UnidirectionalChainNode[%d]=Name:%s==>\t", t.Next.No, t.Next.Name)
+		t = t.Next
+		if t.Next == nil {
+			fmt.Println()
+			break
+		}
+	}
+}
+
+//26.1.2 按序号插入节点
+func (head *UnidirectionalChainNode) Insert(newScn *UnidirectionalChainNode) {
+	t := head
+	for {
+		if t.Next == nil {
+			break
+		}
+		if t.Next.No > newScn.No {
+			break
+		} else if t.Next.No == newScn.No {
+			fmt.Println("已经存在这个No了：", t.Next)
+			return
+		}
+		t = t.Next
+	}
+	newScn.Next = t.Next
+	t.Next = newScn
+}
+
+//26.1.3 按序号删除节点
+func (head *UnidirectionalChainNode) Del(no int) {
+	t := head
+	for {
+		if t.Next == nil {
+			fmt.Println("不存在这个No")
+			return
+		}
+		if t.Next.No == no {
+			break
+		}
+		t = t.Next
+	}
+	t.Next = t.Next.Next
+}
+
+//测试UnidirectionalChainNode
+func UnidirectionalChainNodeTest() {
+	//1.创建一个头结点
+	head := &UnidirectionalChainNode{}
+
+	//2.创建一个新的UnidirectionalChainNode
+	sc1 := &UnidirectionalChainNode{
+		No:   1,
+		Name: "小明",
+	}
+	sc2 := &UnidirectionalChainNode{
+		No:   2,
+		Name: "小红",
+	}
+	sc3 := &UnidirectionalChainNode{
+		No:   3,
+		Name: "小兰",
+	}
+	head.Append(sc1)
+	head.Append(sc2)
+	head.Append(sc3)
+	head.Print()
+	head.Del(0)
+	head.Print()
+}
+
+//26.2.1 新增双向链表节点的结构体
+type BidirectionalChainNode struct {
+	No   int
+	Data string
+	Pre  *BidirectionalChainNode //表示指向前一个结点
+	Next *BidirectionalChainNode //表示指向后一个结点
+}
+
+//26.2.4
+func (head *BidirectionalChainNode) Append(newBCN *BidirectionalChainNode) {
+	t := head
+	for {
+		if t.Next == nil {
+			break
+		}
+		t = t.Next
+	}
+	t.Next = newBCN
+	newBCN.Pre = t
+}
+
+//26.2.5
+func (head *BidirectionalChainNode) Print() {
+	t := head
+	if t.Next == nil {
+		fmt.Println("该链表为空")
+		return
+	}
+	for {
+		fmt.Printf("BidirectionalChainNode[%d]=Name:%s==>\t", t.Next.No, t.Next.Data)
+		t = t.Next
+		if t.Next == nil {
+			fmt.Println()
+			break
+		}
+	}
+}
+
+//26.2.6 双向链表的逆序打印方法
+func (head *BidirectionalChainNode) ReversePrint() {
+	t := head
+	if t.Next == nil {
+		fmt.Println("该链表为空")
+		return
+	}
+	//定位到最后节点（这里逆序打印只是为了演示，为双向环形链表做知识储备）
+	for {
+		if t.Next == nil {
+			break
+		}
+		t = t.Next
+	}
+	for {
+		fmt.Printf("BidirectionalChainNode[%d]=Name:%s\t==>\t", t.No, t.Data)
+		t = t.Pre
+		if t.Pre == nil {
+			fmt.Println()
+			break
+		}
+	}
+}
+
+//26.2.7 双向链表的按序号插入
+func (head *BidirectionalChainNode) Insert(newBCN *BidirectionalChainNode) {
+	t := head
+	for {
+		if t.Next == nil {
+			break
+		}
+		if t.Next.No > newBCN.No {
+			break
+		} else if t.Next.No == newBCN.No {
+			fmt.Println("已经存在这个No了：", t.Next)
+			return
+		}
+		t = t.Next
+	}
+	newBCN.Next = t.Next
+	newBCN.Pre = t
+	if t.Next != nil {
+		t.Next.Pre = newBCN
+	}
+	t.Next = newBCN
+}
+
+//26.2.8 双向链表的删除
+func (head *BidirectionalChainNode) Del(no int) {
+	t := head
+	for {
+		if t.Next == nil {
+			fmt.Println("不存在这个No")
+			return
+		}
+		if t.Next.No == no {
+			break
+		}
+		t = t.Next
+	}
+	t.Next = t.Next.Next
+	if t.Next != nil {
+		t.Next.Pre = t
+	}
+}
+
+//测试BidirectionalChainNode
+func BidirectionalChainNodeTest() {
+	//1.创建一个头结点
+	head := &BidirectionalChainNode{}
+
+	//2.创建一个新的SingleChan
+	sc1 := &BidirectionalChainNode{
+		No:   1,
+		Data: "小明",
+	}
+	sc2 := &BidirectionalChainNode{
+		No:   2,
+		Data: "小红",
+	}
+	sc3 := &BidirectionalChainNode{
+		No:   3,
+		Data: "小兰",
+	}
+	head.Append(sc1)
+	head.Append(sc2)
+	head.Append(sc3)
+	head.Print()
+	head.Del(3)
+	head.Print()
+}
+
+//26.3.1 单向环形链表
+type UnidirectionalCircularChainNote struct {
+	No   int
+	Data string
+	Next *UnidirectionalCircularChainNote
+}
+
+func (head *UnidirectionalCircularChainNote) Append(newUCCN *UnidirectionalCircularChainNote) {
+	//判断是否为第一个节点
+	if head.Next == nil {
+		head.No = newUCCN.No
+		head.Data = newUCCN.Data
+		head.Next = head
+		return
+	}
+	t := head
+	for {
+		if t.Next == head {
+			break
+		}
+		t = t.Next
+	}
+	t.Next = newUCCN
+	newUCCN.Next = head
+}
+
+func (head *UnidirectionalCircularChainNote) Print() {
+	t := head
+	if t.Next == nil {
+		fmt.Println("该链表为空")
+		return
+	}
+	for {
+		fmt.Printf("UnidirectionalCircularChainNote[%d]=Name:%s==>\t", t.No, t.Data)
+		if t.Next == head {
+			break
+		}
+		t = t.Next
+	}
+	fmt.Println()
+}
+
+func (head *UnidirectionalCircularChainNote) Del(no int) {
+	t1 := head
+	t2 := head
+	if t1.Next == nil {
+		fmt.Println("链表不存在")
+		return
+	}
+	//只有一个节点的情况
+	if t1.Next == head {
+		t1.Next = nil
+		return
+	}
+
+	for {
+		if t2.Next == head {
+			break
+		}
+		t2 = t2.Next
+	}
+
+	for {
+		if t1.Next == head {
+			if t1.No == no {
+				t2.Next = t1.Next
+			} else {
+				fmt.Println("该No不存在：", no)
+			}
+			break
+		}
+		if t1.No == no {
+			if t1 == head {
+				*head = *head.Next
+				break
+			}
+			t2.Next = t1.Next
+			break
+		}
+		t1 = t1.Next
+		t2 = t2.Next
+	}
+
+}
+
+// var (
+// 	goroutineComputLock sync.Mutex //同步.互斥  可以但不推荐（效率低）
+// )
+
+// //25 闭环队列
+// type CircleQueue struct {
+// 	MaxSize int //5
+// 	Arrary  []int
+// 	Head    int
+// 	Tail    int
+// }
+
+// //放入
+// func (c *CircleQueue) Push(val int) (err error) {
+// 	if c.IsFull() {
+// 		return errors.New("queue full")
+// 	}
+// 	c.Arrary[c.Tail] = val
+// 	c.Tail = (c.Tail + 1) % (c.MaxSize + 1)
+// 	return nil
+// }
+
+// //取出
+// func (c *CircleQueue) Pop() (val int, err error) {
+// 	if c.IsEmpty() {
+// 		return -1, errors.New("queue empty")
+// 	}
+// 	val = c.Arrary[c.Head]
+// 	c.Head = (c.Head + 1) % (c.MaxSize + 1)
+// 	return
+// }
+
+// //显示
+// func (c *CircleQueue) Show() {
+// 	size := c.Size()
+// 	if size == 0 {
+// 		fmt.Println("队列为空")
+// 		return
+// 	}
+// 	t := c.Head
+// 	for i := 0; i < size; i++ {
+// 		fmt.Printf("Arrary[%d]=%d\n", t, c.Arrary[t])
+// 		t = (t + 1) % c.MaxSize
+// 	}
+// }
+
+// //判断环形队列是否为满
+// func (c *CircleQueue) IsFull() bool {
+// 	return (c.Tail+1)%c.MaxSize == c.Head
+// }
+
+// //判断环形队列是否为空
+// func (c *CircleQueue) IsEmpty() bool {
+// 	return c.Tail == c.Head
+// }
+
+// //判断环形队列有多少个元素
+// func (c *CircleQueue) Size() int {
+// 	return (c.Tail + c.MaxSize - c.Head) % c.MaxSize
+// }
+
+// func Server(i int, c *CircleQueue) {
+// 	var randseed = time.Now().UnixNano()
+// 	for {
+// 		randseed++
+// 		rand.Seed(randseed)
+// 		randNum := rand.Intn(10) + 1
+// 		time.Sleep(time.Second * time.Duration(randNum))
+// 		goroutineComputLock.Lock()
+// 		val, err := c.Pop()
+// 		goroutineComputLock.Unlock()
+// 		if err == nil {
+// 			fmt.Printf("%d号协程正在服务%d号客户...\n", i, val)
+// 		} else {
+// 			fmt.Println("err=", err)
+// 		}
+// 	}
+// }
+
+// func main() {
+// 	c := &CircleQueue{
+// 		MaxSize: 5,
+// 	}
+// 	c.Arrary = make([]int, c.MaxSize+1)
+// 	for i := 1; i < 3; i++ {
+// 		go Server(i, c)
+// 	}
+// 	var randseed = time.Now().UnixNano()
+// 	for i := 1; ; i++ {
+// 		randseed++
+// 		rand.Seed(randseed)
+// 		randNum := rand.Intn(5) + 1
+// 		time.Sleep(time.Second * time.Duration(randNum))
+// 		goroutineComputLock.Lock()
+// 		err := c.Push(i)
+// 		goroutineComputLock.Unlock()
+// 		if err == nil {
+// 			fmt.Printf("%d号客户在排队...\n", i)
+// 		} else {
+// 			fmt.Println("err=", err)
+// 		}
+// 	}
+// }
+
+//27.1 选择排序（快于冒泡排序）
+func SelectionSort(arr []int) {
+	for i := 0; i < len(arr)-1; i++ {
+		maxIndex := i
+		max := arr[i]
+		for j := i + 1; j < len(arr); j++ {
+			if max > arr[j] {
+				max = arr[j]
+				maxIndex = j
+			}
+		}
+		//交换
+		if maxIndex != i {
+			arr[i], arr[maxIndex] = arr[maxIndex], arr[i]
+		}
+	}
+}
+
+func SelectionSortTest() {
+	arr := []int{2, 4, 3, 6, 1, 100, 20}
+	fmt.Println("排序前：", arr)
+	SelectionSort(arr)
+	fmt.Println("排序后:", arr)
+}
+
+//27.2 插入排序（快于选择排序）
+func InsertionSort(arr []int) {
+	for i := 1; i < len(arr); i++ {
+		NodeVal := arr[i]
+		NodeIndx := i - 1
+		for NodeIndx >= 0 && arr[NodeIndx] > NodeVal {
+			arr[NodeIndx+1] = arr[NodeIndx]
+			NodeIndx--
+		}
+		if NodeIndx+1 != i {
+			arr[NodeIndx+1] = NodeVal
+		}
+	}
+}
+
+func InsertionSortTest() {
+	arr := []int{2, 4, 3, -6, 100, 52}
+	fmt.Println("排序前：", arr)
+	InsertionSort(arr)
+	fmt.Println("排序后：", arr)
+}
+
+//27.3 快速排序(最快的)
+func QuickSort(leftIndex int, rightIndex int, arr []int) {
+	l := leftIndex
+	r := rightIndex
+	pivot := arr[(l+r)/2]
+	t := 0
+	for l < r {
+		for arr[l] < pivot {
+			l++
+		}
+		for arr[r] > pivot {
+			r--
+		}
+		if l >= r {
+			break
+		}
+		t = arr[l]
+		arr[l] = arr[r]
+		arr[r] = t
+		if arr[l] == pivot {
+			r--
+		}
+		if arr[r] == pivot {
+			l++
+		}
+	}
+	if l == r {
+		l++
+		r--
+	}
+	if leftIndex < r {
+		QuickSort(leftIndex, r, arr)
+	}
+	if rightIndex > l {
+		QuickSort(l, rightIndex, arr)
+	}
+}
+
+func QuickSortTest() {
+	arr := []int{2, 4, 3, -6, 100, 52}
+	fmt.Println("排序前：", arr)
+	QuickSort(0, len(arr)-1, arr)
+	fmt.Println("排序后：", arr)
+}
+
+//28 栈(先入后出的有序列表)
+//插入和取出均在同一端：栈顶  固定的一端：栈底
+//28.1 切片模拟栈
+type StackStruct struct {
+	Cap int //总共容量
+	Top int
+	Arr []int
+}
+
+func (s *StackStruct) Push(v int) (err error) {
+	if s.Top == s.Cap-1 {
+		return errors.New("stack full")
+	}
+	s.Top++
+	s.Arr[s.Top] = v
+	return
+}
+
+func (s *StackStruct) Pop() (v int, err error) {
+	if s.Top == -1 {
+		return 0, errors.New("stack empty")
+	}
+	v = s.Arr[s.Top]
+	s.Top--
+	return
+}
+func (s *StackStruct) Print() {
+	if s.Top == -1 {
+		fmt.Println("stack empty")
+		return
+	}
+	for i := s.Top; i > -1; i-- {
+		fmt.Printf("arr[%v]=%v\n", i, s.Arr[i])
+	}
+}
+
+func StackTest() {
+	s := &StackStruct{
+		Cap: 10,
+		Top: -1,
+	}
+	s.Arr = make([]int, s.Cap)
+	s.Push(555)
+	s.Push(569)
+	s.Push(24)
+	s.Print()
+	s.Pop()
+	v, err := s.Pop()
+	if err == nil {
+		fmt.Println("v=", v)
+	} else {
+		fmt.Println("err=", err)
+	}
+	s.Pop()
+	s.Print()
+
+}
