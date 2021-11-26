@@ -17,8 +17,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/gomodule/redigo/redis"
 )
 
 //文件管理初始化（在项目的根目录下）：go mod init 项目名
@@ -1230,125 +1228,6 @@ func TCPClient() {
 			return
 		}
 		fmt.Println("发送成功，发送了", n, "个字节")
-	}
-}
-
-//22 redis数据库
-//redis支持的数据类型: String/Hash(类似于golang的map[string]string)/List/Set(无序且不能重复)/zset是有序的(无序：set)
-
-//22.1 常见key value操作
-//22.1.1 添加和修改key value：set key value
-//22.1.2 添加临时的key value：setex key seconds value
-//22.1.3 批量添加修改key value：mset key1 value1 key2 value2 ...
-//22.1.4 查看所有的key：keys *
-//22.1.5 查看key对应的值：get key
-//22.1.6 批量获取key的值：mget key1 key2 ...
-//22.1.7 切换数据库（0~15 默认为0）：select index
-//22.1.8 查看当前数据库key value数量：dbsize
-//22.1.9 清空当前数据库所有key value：flushdb
-//22.1.10 清空所有数据库所有key value：flushall
-//22.1.11 删除指定的key value：del key
-
-//22.2 hash 操作
-//22.2.1 添加修改hash：hset key field value
-//22.2.2 批量添加修改hash：hmset key field1 value1 field2 value2 ...
-//22.2.3 查看key field对应的值：hget key field
-//22.2.4 批量查看key的多个field的值：hmget key field1 field2 ...
-//22.2.5 获取key对应的所有的field value: hgetall key
-//22.2.6 删除对应的field和value：hdel key field1 field2 ...
-//22.2.7 查看hash长度：hlen key
-//22.2.8 查看字段是否存在：hexists key field
-
-//22.3 list
-//22.3.1 从左边插入元素：lpush key value2 value1 value0 ...
-//22.3.2 从右边插入元素：rpush key value0 value1 value2 ...
-//22.3.3 获取对应的元素：lrange key startIndex stopIndex (index可以为负数：-1为倒数第一个元素，-2为倒数第二个元素...)
-//22.3.4 从左边推出元素（如果全部推出，则对应的key也会被删除）：lpop key
-//22.3.5 从右边推出元素：rpop key
-//22.3.6 统计list长度：llen key
-
-//22.4 set
-//22.4.1 添加元素：sadd key member1 member2 member0 ...
-//22.4.2 获取所有的元素：smembers key
-//22.4.3 判断元素是否存在：sismember key member
-//22.4.4 删除元素：srem key member member ...
-
-//22.5 通过redigo 操作redis
-func RediGo() {
-	//22.5.1 拨号连接
-	conn, err := redis.Dial("tcp", "127.0.0.1:6379")
-	if err != nil {
-		fmt.Println("redis连接失败！", err)
-		return
-	}
-	//22.5.2 关闭连接
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			fmt.Println("关闭与redis的连接失败！", err)
-		}
-	}()
-	fmt.Println("redis连接成功！", conn)
-
-	//22.5.3 操作redis
-	conn.Do("set", "name", "fangpig")
-	str, err := redis.String(conn.Do("get", "name"))
-	if err != nil {
-		fmt.Println("操作redis失败！", err)
-		return
-	}
-	fmt.Println("redis返回：", str)
-	conn.Do("hmset", "user1", "name", "fangpig", "age", "60")
-	strs, err := redis.Strings(conn.Do("hgetall", "user1"))
-	if err != nil {
-		fmt.Println("操作redis失败！", err)
-		return
-	}
-	for i, v := range strs {
-		if i%2 == 0 {
-			fmt.Printf("user1[\"%v\"]:", v)
-		} else {
-			fmt.Printf("\"%v\"\n", v)
-		}
-	}
-
-}
-
-//22.5.4 redis连接池（服务器端并发性能优化）
-var redisPool *redis.Pool
-
-func RedisPoolInit() { //需要在项目的init(初始化的意思）中调用
-	redisPool = &redis.Pool{
-		MaxIdle:     8,  //最大空闲连接数
-		MaxActive:   0,  //最大连接数，0是没有限制
-		IdleTimeout: 30, //最大空闲时间（秒）
-		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", "127.0.0.1:6379")
-		},
-	}
-}
-func RedisPoolTest() { //通常在协程中使用
-	//从redis中取出连接
-	conn := redisPool.Get()
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			fmt.Println("关闭与redis的连接失败！", err)
-		}
-	}()
-	fmt.Println("redis连接成功！", conn)
-	conn.Do("hmset", "user1", "name", "fangpig", "age", "60")
-	strs, err := redis.Strings(conn.Do("hgetall", "user1"))
-	if err != nil {
-		fmt.Println("操作redis失败！", err)
-		return
-	}
-	for i, v := range strs {
-		if i%2 == 0 {
-			fmt.Printf("user1[\"%v\"]:", v)
-		} else {
-			fmt.Printf("\"%v\"\n", v)
-		}
 	}
 }
 
